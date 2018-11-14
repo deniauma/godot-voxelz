@@ -20,11 +20,11 @@ func _ready():
 			addVoxel(Vector3(i,0,k), 1)
 	for i in range(-2,2):
 			addVoxel(Vector3(i,1,0), 1)"""
-	generateWorld()
+	#generateWorld()
+	create_chunk()
 	return
 
 func generateWorld():
-	print(str(range(1)))
 	randomize()
 	var gen_map = gen_diamond_square_heightmap(4, 0, 5)
 	print("Map size: " + str(gen_map.size))
@@ -40,6 +40,23 @@ func generateWorld():
 				nb_voxels += 1
 				#print(str(Vector3(x,y,z)))
 	print("Nb voxels: " + str(nb_voxels))
+
+func create_chunk():
+	randomize()
+	var gen_map = gen_diamond_square_heightmap(6, 0, 5)
+	surface.clear()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	surface.set_material(mat)
+	for x in range(gen_map.width):
+		for z in range(gen_map.width):
+			var k = int(gen_map.at(x,z))
+			if k <= 0:
+				k = 1
+			for y in range(k):
+				cube_at(Vector3(x, y, z), 2)
+	var chunk = MeshInstance.new()
+	chunk.mesh = surface.commit()
+	add_child(chunk)
 
 func addVoxel(pos, type):
 	var voxel = MeshInstance.new()
