@@ -14,16 +14,32 @@ func _ready():
 	mat.albedo_texture = texture
 	#mat.set_flag(SpatialMaterial.FLAG_UNSHADED, true)
 	create_cube_with_grass_and_dirt()
-	world[Vector3(0,0,0)] = meshInstance
+	"""world[Vector3(0,0,0)] = meshInstance
 	for i in range(-5,5):
 		for k in range(-5,5):
 			addVoxel(Vector3(i,0,k), 1)
 	for i in range(-2,2):
-			addVoxel(Vector3(i,1,0), 1)
-			
-	var arr = Array2D.new(2,2)
-	
+			addVoxel(Vector3(i,1,0), 1)"""
+	generateWorld()
 	return
+
+func generateWorld():
+	print(str(range(1)))
+	randomize()
+	var gen_map = gen_diamond_square_heightmap(4, 0, 5)
+	print("Map size: " + str(gen_map.size))
+	#print(gen_map.to_str())
+	var nb_voxels = 0
+	for x in range(gen_map.width):
+		for z in range(gen_map.width):
+			var k = int(gen_map.at(x,z))
+			if k <= 0:
+				k = 1
+			for y in range(k):
+				addVoxel(Vector3(x,y,z), 1)
+				nb_voxels += 1
+				#print(str(Vector3(x,y,z)))
+	print("Nb voxels: " + str(nb_voxels))
 
 func addVoxel(pos, type):
 	var voxel = MeshInstance.new()
@@ -123,6 +139,9 @@ func _process(delta):
 	$HUD/monitor/cpuMemStaticLine/cpuMemStatic.set_text(str(int(Performance.get_monitor(Performance.MEMORY_STATIC)/1000000)))
 	$HUD/monitor/cpuMemDynLine/cpuMemDyn.set_text(str(int(Performance.get_monitor(Performance.MEMORY_DYNAMIC)/1000000)))
 	$HUD/monitor/GPUmemLine/GPUmem.set_text(str(int(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)/1000000)))
+	
+	if Input.is_action_just_pressed("ui_right"):
+		print("Right")
 	"""angle += delta * 30
 	meshInstance.rotation_degrees = Vector3(angle, 0, 0)"""
 	
@@ -131,7 +150,7 @@ func gen_diamond_square_heightmap(n, min_height, max_height):
 	var heightmap = Array2D.new(side_size, side_size)
 	var iterations = n
 	
-	randomize()
+	#randomize()
 	#init the 4 corners
 	heightmap.set(0, 0, rand_range(min_height, max_height))
 	heightmap.set(side_size-1, 0, rand_range(min_height, max_height))
@@ -158,8 +177,20 @@ func gen_diamond_square_heightmap(n, min_height, max_height):
 			for y in range(decal, side_size, half_step):
 				var sum = 0
 				var m = 0
-				
-	return
+				if x >= half_step:
+					sum += heightmap.at(x - half_step, y)
+					m += 1
+				if (x + half_step) < side_size:
+					sum += heightmap.at(x + half_step, y)
+					m += 1
+				if y >= half_step:
+					sum += heightmap.at(x, y - half_step)
+					m += 1
+				if (y + half_step) < side_size:
+					sum += heightmap.at(x, y + half_step)
+					m += 1
+				heightmap.set(x, y, sum / (m + rand_range(-half_step, half_step)))
+	return heightmap
 	
 	
 class Array2D:
