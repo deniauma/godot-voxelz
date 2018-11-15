@@ -13,20 +13,15 @@ var world = {}
 func _ready():
 	mat.albedo_texture = texture
 	#mat.set_flag(SpatialMaterial.FLAG_UNSHADED, true)
-	create_cube_with_grass_and_dirt()
-	"""world[Vector3(0,0,0)] = meshInstance
-	for i in range(-5,5):
-		for k in range(-5,5):
-			addVoxel(Vector3(i,0,k), 1)
-	for i in range(-2,2):
-			addVoxel(Vector3(i,1,0), 1)"""
-	#generateWorld()
 	generate_heightmap()
+	var t = OS.get_ticks_msec()
 	create_chunk()
+	print(str(OS.get_ticks_msec() - t))
 	return
 
 func generate_heightmap():
-	randomize()
+	#randomize()
+	seed(4)
 	var gen_map = gen_diamond_square_heightmap(3, 0, 10)
 	var nb_voxels = 0
 	for x in range(gen_map.width):
@@ -37,33 +32,22 @@ func generate_heightmap():
 			for y in range(k):
 				world[Vector3(x,y,z)] = 1
 
-
-func generateWorld():
-	#randomize()
-	var gen_map = gen_diamond_square_heightmap(2, 0, 5)
-	print("Map size: " + str(gen_map.size))
-	#print(gen_map.to_str())
-	var nb_voxels = 0
-	for x in range(gen_map.width):
-		for z in range(gen_map.width):
-			var k = int(gen_map.at(x,z))
-			if k <= 0:
-				k = 1
-			for y in range(k):
-				addVoxel(Vector3(x,y,z), 1)
-				nb_voxels += 1
-				#print(str(Vector3(x,y,z)))
-	print("Nb voxels: " + str(nb_voxels))
-
 func create_chunk():
-	print("Culled voxels = "+str(cull_voxels()))
+	var total_voxels = 0
+	for pos in world:
+		if world[pos] > 0:
+			total_voxels += 1
+	print("Total voxels displayed = "+str(total_voxels))
+	#print("Culled voxels = "+str(cull_voxels()))
 	surface.clear()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	surface.set_material(mat)
 	for pos in world.keys():
 		if world[pos] > 0:
-			cube_at(pos, 2)
+			var faces_to_cull = find_adjacent_faces(pos)
+			cube_at(pos, 2, faces_to_cull)
 	var chunk = MeshInstance.new()
+	surface.index()
 	chunk.mesh = surface.commit()
 	add_child(chunk)
 	return chunk
@@ -71,41 +55,42 @@ func create_chunk():
 func cull_voxels():
 	var nb_culled = 0
 	for pos in world.keys():
-		if find_adjacent_cubes(pos):
+		var culling_info = find_adjacent_cubes(pos)
+		var to_cull = culling_info[0]
+		var faces_to_cull = culling_info[1]
+		if to_cull:
 			world[pos] = -world[pos]
 			nb_culled += 1
 	return nb_culled
 		
 func find_adjacent_cubes(pos):
 	var dirs = [Vector3(1,0,0),Vector3(0,1,0),Vector3(0,0,1), Vector3(-1,0,0),Vector3(0,-1,0),Vector3(0,0,-1)]
+	var adjacent_faces = []
 	var culled = true
 	for normal in dirs:
 		var adjacent_cube = pos + normal
 		if not world.has(adjacent_cube):
 			culled = false
-	return culled
-
-func addVoxel(pos, type):
-	var voxel = MeshInstance.new()
-	voxel.mesh = voxel_dirt_and_grass
-	voxel.translation = pos
-	world[pos] = voxel
-	add_child(voxel)
-
-func create_cube_with_grass_and_dirt():
-	surface.clear()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	surface.set_material(mat)
-	cube_at(Vector3(0, 0, 0), 2)
-	voxel_dirt_and_grass = surface.commit()
-
-func cube_at(pos, type):
-	var dirs = [Vector3(1,0,0),Vector3(0,1,0),Vector3(0,0,1)]
+		else:
+			adjacent_faces.append(normal)
+	return [culled, adjacent_faces]
 	
+func find_adjacent_faces(pos):
+	var dirs = [Vector3(1,0,0),Vector3(0,1,0),Vector3(0,0,1), Vector3(-1,0,0),Vector3(0,-1,0),Vector3(0,0,-1)]
+	var adjacent_faces = []
+	for normal in dirs:
+		var adjacent_cube = pos + normal
+		if world.has(adjacent_cube):
+			adjacent_faces.append(normal)
+	return adjacent_faces
+
+func cube_at(pos, type, faces_to_cull):
+	var dirs = [Vector3(1,0,0),Vector3(0,1,0),Vector3(0,0,1)]	
 	for i in range(3):
 		for k in range(2):
 			var n = dirs[i]*-(k*2 -1)
-			face_at(pos,n,type)
+			if not faces_to_cull.has(n):
+				face_at(pos,n,type)
 				
 func face_at(pos, normal, type):
 	var s = 0.5
