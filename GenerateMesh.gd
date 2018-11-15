@@ -21,12 +21,26 @@ func _ready():
 	for i in range(-2,2):
 			addVoxel(Vector3(i,1,0), 1)"""
 	#generateWorld()
+	generate_heightmap()
 	create_chunk()
 	return
 
-func generateWorld():
+func generate_heightmap():
 	randomize()
-	var gen_map = gen_diamond_square_heightmap(4, 0, 5)
+	var gen_map = gen_diamond_square_heightmap(3, 0, 10)
+	var nb_voxels = 0
+	for x in range(gen_map.width):
+		for z in range(gen_map.width):
+			var k = int(gen_map.at(x,z))
+			if k <= 0:
+				k = 1
+			for y in range(k):
+				world[Vector3(x,y,z)] = 1
+
+
+func generateWorld():
+	#randomize()
+	var gen_map = gen_diamond_square_heightmap(2, 0, 5)
 	print("Map size: " + str(gen_map.size))
 	#print(gen_map.to_str())
 	var nb_voxels = 0
@@ -42,21 +56,34 @@ func generateWorld():
 	print("Nb voxels: " + str(nb_voxels))
 
 func create_chunk():
-	randomize()
-	var gen_map = gen_diamond_square_heightmap(6, 0, 5)
+	print("Culled voxels = "+str(cull_voxels()))
 	surface.clear()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	surface.set_material(mat)
-	for x in range(gen_map.width):
-		for z in range(gen_map.width):
-			var k = int(gen_map.at(x,z))
-			if k <= 0:
-				k = 1
-			for y in range(k):
-				cube_at(Vector3(x, y, z), 2)
+	for pos in world.keys():
+		if world[pos] > 0:
+			cube_at(pos, 2)
 	var chunk = MeshInstance.new()
 	chunk.mesh = surface.commit()
 	add_child(chunk)
+	return chunk
+
+func cull_voxels():
+	var nb_culled = 0
+	for pos in world.keys():
+		if find_adjacent_cubes(pos):
+			world[pos] = -world[pos]
+			nb_culled += 1
+	return nb_culled
+		
+func find_adjacent_cubes(pos):
+	var dirs = [Vector3(1,0,0),Vector3(0,1,0),Vector3(0,0,1), Vector3(-1,0,0),Vector3(0,-1,0),Vector3(0,0,-1)]
+	var culled = true
+	for normal in dirs:
+		var adjacent_cube = pos + normal
+		if not world.has(adjacent_cube):
+			culled = false
+	return culled
 
 func addVoxel(pos, type):
 	var voxel = MeshInstance.new()
