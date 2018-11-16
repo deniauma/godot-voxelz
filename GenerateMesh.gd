@@ -1,7 +1,5 @@
 extends Spatial
 
-onready var meshInstance = $mesh
-
 var angle = 0
 var texture = load("res://assets/spritesheet_tiles.png")
 var surface = SurfaceTool.new()
@@ -22,7 +20,7 @@ func _ready():
 func generate_heightmap():
 	#randomize()
 	seed(4)
-	var gen_map = gen_diamond_square_heightmap(3, 0, 10)
+	var gen_map = gen_diamond_square_heightmap(5, 0, 10)
 	var nb_voxels = 0
 	for x in range(gen_map.width):
 		for z in range(gen_map.width):
@@ -37,7 +35,7 @@ func create_chunk():
 	for pos in world:
 		if world[pos] > 0:
 			total_voxels += 1
-	print("Total voxels displayed = "+str(total_voxels))
+	print("Total voxels before culling = "+str(total_voxels))
 	#print("Culled voxels = "+str(cull_voxels()))
 	surface.clear()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -163,17 +161,6 @@ func calcUV(type,normal):
 			uvoffset = Vector2(5,0)
 	return [uv_orderList,uvoffset]
 
-func _process(delta):
-	$HUD/monitor/fpsLine/fps.set_text(str(Engine.get_frames_per_second()))
-	$HUD/monitor/cpuMemStaticLine/cpuMemStatic.set_text(str(int(Performance.get_monitor(Performance.MEMORY_STATIC)/1000000)))
-	$HUD/monitor/cpuMemDynLine/cpuMemDyn.set_text(str(int(Performance.get_monitor(Performance.MEMORY_DYNAMIC)/1000000)))
-	$HUD/monitor/GPUmemLine/GPUmem.set_text(str(int(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)/1000000)))
-	
-	if Input.is_action_just_pressed("ui_right"):
-		print("Right")
-	"""angle += delta * 30
-	meshInstance.rotation_degrees = Vector3(angle, 0, 0)"""
-	
 func gen_diamond_square_heightmap(n, min_height, max_height):
 	var side_size = pow(2, n) + 1
 	var heightmap = Array2D.new(side_size, side_size)
