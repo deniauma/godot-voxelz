@@ -7,15 +7,24 @@ var mat = SpatialMaterial.new()
 var voxel_dirt_and_grass #type = 1
 var voxel_dirt #type = 2
 var world = {}
+var thread = Thread.new()
+
+func test_thread(text):
+	print("Il marche ce thread!")
+	call_deferred("create_chunk")
 
 func _ready():
 	mat.albedo_texture = texture
 	#mat.set_flag(SpatialMaterial.FLAG_UNSHADED, true)
-	generate_heightmap()
 	var t = OS.get_ticks_msec()
-	create_chunk()
-	print(str(OS.get_ticks_msec() - t))
-	return
+	generate_heightmap()
+	#create_chunk()
+	print(str(OS.get_ticks_msec() - t)+" ms")
+	if thread.is_active():
+		# Already working
+		return
+	print("test")
+	thread.start(self, "create_chunk")
 
 func generate_heightmap():
 	#randomize()
@@ -30,7 +39,8 @@ func generate_heightmap():
 			for y in range(k):
 				world[Vector3(x,y,z)] = 1
 
-func create_chunk():
+func create_chunk(size):
+	print("Chunk build started!")
 	var total_voxels = 0
 	for pos in world:
 		if world[pos] > 0:
@@ -47,6 +57,7 @@ func create_chunk():
 	var chunk = MeshInstance.new()
 	surface.index()
 	chunk.mesh = surface.commit()
+	print("Chunk generated!")
 	add_child(chunk)
 	return chunk
 
