@@ -2,23 +2,22 @@
 
 importer="texture"
 type="StreamTexture"
-path.s3tc="res://.import/spritesheet_tiles.png-db7496d4c934dabb135421f2e10462a9.s3tc.stex"
-path.etc2="res://.import/spritesheet_tiles.png-db7496d4c934dabb135421f2e10462a9.etc2.stex"
+path="res://.import/spritesheet_tiles.png-db7496d4c934dabb135421f2e10462a9.stex"
 
 [deps]
 
 source_file="res://assets/spritesheet_tiles.png"
-dest_files=[ "res://.import/spritesheet_tiles.png-db7496d4c934dabb135421f2e10462a9.s3tc.stex", "res://.import/spritesheet_tiles.png-db7496d4c934dabb135421f2e10462a9.etc2.stex" ]
+dest_files=[ "res://.import/spritesheet_tiles.png-db7496d4c934dabb135421f2e10462a9.stex" ]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/lossy_quality=0.7
 compress/hdr_mode=0
 compress/normal_map=0
-flags/repeat=true
-flags/filter=true
-flags/mipmaps=true
+flags/repeat=0
+flags/filter=false
+flags/mipmaps=false
 flags/anisotropic=false
 flags/srgb=1
 process/fix_alpha_border=true

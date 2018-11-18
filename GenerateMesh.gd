@@ -1,23 +1,22 @@
 extends Spatial
 
 var angle = 0
+var simplex = load("res://simplex/Simplex.gd")
 var texture = load("res://assets/spritesheet_tiles.png")
 var surface = SurfaceTool.new()
 var mat = SpatialMaterial.new()
 var voxel_dirt_and_grass #type = 1
 var voxel_dirt #type = 2
 var world = {}
+var chunk_world = {}
 var thread = Thread.new()
-
-func test_thread(text):
-	print("Il marche ce thread!")
-	call_deferred("create_chunk")
 
 func _ready():
 	mat.albedo_texture = texture
 	#mat.set_flag(SpatialMaterial.FLAG_UNSHADED, true)
 	var t = OS.get_ticks_msec()
-	generate_heightmap()
+	#generate_heightmap(5)
+	generate_height_with_simplex(32)
 	#create_chunk()
 	print(str(OS.get_ticks_msec() - t)+" ms")
 	if thread.is_active():
@@ -26,17 +25,28 @@ func _ready():
 	print("test")
 	thread.start(self, "create_chunk")
 
-func generate_heightmap():
+func generate_heightmap(max_height):
 	#randomize()
 	seed(4)
-	var gen_map = gen_diamond_square_heightmap(5, 0, 10)
+	var gen_map = gen_diamond_square_heightmap(6, 0, 10)
 	var nb_voxels = 0
 	for x in range(gen_map.width):
 		for z in range(gen_map.width):
 			var k = int(gen_map.at(x,z))
 			if k <= 0:
 				k = 1
+			if k > 20:
+				k = 20
 			for y in range(k):
+				world[Vector3(x,y,z)] = 1
+
+func generate_height_with_simplex(size):
+	for x in range(size):
+		for z in range(size):
+			var xforsim = x * 0.05+40
+			var yforsim = z * 0.05+2000
+			var h = 1 + (((simplex.simplex2(xforsim,yforsim)+1)*0.5) * 16)
+			for y in range(h):
 				world[Vector3(x,y,z)] = 1
 
 func create_chunk(size):
@@ -216,7 +226,8 @@ func gen_diamond_square_heightmap(n, min_height, max_height):
 				if (y + half_step) < side_size:
 					sum += heightmap.at(x, y + half_step)
 					m += 1
-				heightmap.set(x, y, sum / (m + rand_range(-half_step, half_step)))
+				var h = sum / (m + rand_range(-half_step, half_step))
+				heightmap.set(x, y, h)
 	return heightmap
 	
 	
