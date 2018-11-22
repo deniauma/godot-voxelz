@@ -105,7 +105,7 @@ adjustment_contrast = 1.0
 adjustment_saturation = 1.0
 _sections_unfolded = [ "Ambient Light", "Background", "SSAO" ]
 
-[node name="world" type="Node" index="0"]
+[node name="world" type="Spatial" index="0"]
 
 [node name="Chunk" parent="." index="0" instance=ExtResource( 1 )]
 
@@ -117,7 +117,6 @@ environment = SubResource( 2 )
 
 [node name="Player" parent="." index="3" instance=ExtResource( 3 )]
 
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 15, 5 )
-_sections_unfolded = [ "Transform" ]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 30, 10 )
 
 

@@ -1,12 +1,13 @@
 extends KinematicBody
 
 
-const GRAVITY = -24.8
-const MAX_SPEED = 20
-const JUMP_SPEED = 18
+const GRAVITY = -25
+const MAX_SPEED = 15
+const JUMP_SPEED = 10
 const ACCEL= 4.5
 const DEACCEL= 16
 const MAX_SLOPE_ANGLE = 40
+var vel = Vector3()
 
 onready var cam = $camera
 var MOVE_SPEED = 0.1
@@ -20,16 +21,16 @@ func _physics_process(delta):
 	var cam_xform = cam.get_global_transform()
 	var input_movement_vector = Vector2()
 	
-	if Input.is_action_pressed("ui_up"):
+	if Input.is_action_pressed("move_forward"):
 		input_movement_vector.y += 1
 		#self.translate_object_local(-transform.basis.z.normalized() * MOVE_SPEED)
-	if Input.is_action_pressed("ui_down"):
+	if Input.is_action_pressed("move_back"):
 		input_movement_vector.y -= 1
 		#self.translate_object_local(transform.basis.z.normalized() * MOVE_SPEED)
-	if Input.is_action_pressed("ui_left"):
+	if Input.is_action_pressed("strafe_left"):
 		input_movement_vector.x -= 1
 		#self.translate_object_local(-transform.basis.x.normalized() * MOVE_SPEED)
-	if Input.is_action_pressed("ui_right"):
+	if Input.is_action_pressed("strafe_right"):
 		input_movement_vector.x += 1
 		#self.translate_object_local(transform.basis.x.normalized() * MOVE_SPEED)
 		
@@ -38,12 +39,15 @@ func _physics_process(delta):
 	dir += -cam_xform.basis.z.normalized() * input_movement_vector.y
 	dir += cam_xform.basis.x.normalized() * input_movement_vector.x
 	
-	var vel = Vector3()
+	# Jumping
+	if is_on_floor():
+		if Input.is_action_just_pressed("jump"):
+			vel.y = JUMP_SPEED
 	
 	dir.y = 0
 	dir = dir.normalized()
 
-	vel.y += delta*GRAVITY
+	vel.y += GRAVITY*delta
 
 	var hvel = vel
 	hvel.y = 0

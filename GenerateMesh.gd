@@ -16,13 +16,12 @@ func _ready():
 	#mat.set_flag(SpatialMaterial.FLAG_UNSHADED, true)
 	var t = OS.get_ticks_msec()
 	#generate_heightmap(5)
-	generate_height_with_simplex(64)
+	generate_height_with_simplex(256)
 	#create_chunk()
 	print(str(OS.get_ticks_msec() - t)+" ms")
 	if thread.is_active():
 		# Already working
 		return
-	print("test")
 	thread.start(self, "create_chunk")
 
 func generate_heightmap(max_height):
@@ -51,6 +50,7 @@ func generate_height_with_simplex(size):
 
 func create_chunk(size):
 	print("Chunk build started!")
+	var t = OS.get_ticks_msec()
 	var total_voxels = 0
 	for pos in world:
 		if world[pos] > 0:
@@ -67,10 +67,11 @@ func create_chunk(size):
 	var chunk = MeshInstance.new()
 	surface.index()
 	chunk.mesh = surface.commit()
-	print("Chunk mesh generated!")
+	print("Chunk mesh generated in "+str(OS.get_ticks_msec() - t)+" ms")
+	t = OS.get_ticks_msec()
 	chunk.create_trimesh_collision()
 	#chunk.create_convex_collision()
-	print("Chunk collider generated!")
+	print("Chunk collider generated in "+str(OS.get_ticks_msec() - t)+" ms")
 	add_child(chunk)
 	return chunk
 	
