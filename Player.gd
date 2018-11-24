@@ -15,11 +15,15 @@ var MOUSE_SENSITIVITY = 0.005
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	self.add_to_group("player")
 
 func _physics_process(delta):
 	var dir = Vector3()
 	var cam_xform = cam.get_global_transform()
 	var input_movement_vector = Vector2()
+	
+	if Input.is_key_pressed(KEY_P):
+		print(str($voxPos.global_transform.origin))
 	
 	if Input.is_action_pressed("move_forward"):
 		input_movement_vector.y += 1

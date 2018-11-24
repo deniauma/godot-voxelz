@@ -5,24 +5,26 @@ var simplex = load("res://simplex/Simplex.gd")
 var texture = load("res://assets/spritesheet_tiles.png")
 var surface = SurfaceTool.new()
 var mat = SpatialMaterial.new()
+var chunk = MeshInstance.new()
 var voxel_dirt_and_grass #type = 1
 var voxel_dirt #type = 2
 var world = {}
-var chunk_world = {}
 var thread = Thread.new()
+var generated = false
 
 func _ready():
 	mat.albedo_texture = texture
 	#mat.set_flag(SpatialMaterial.FLAG_UNSHADED, true)
 	var t = OS.get_ticks_msec()
 	#generate_heightmap(5)
-	generate_height_with_simplex(256)
+	generate_height_with_simplex(16)
 	#create_chunk()
 	print(str(OS.get_ticks_msec() - t)+" ms")
 	if thread.is_active():
 		# Already working
 		return
 	thread.start(self, "create_chunk")
+	
 
 func generate_heightmap(max_height):
 	#randomize()
@@ -51,12 +53,6 @@ func generate_height_with_simplex(size):
 func create_chunk(size):
 	print("Chunk build started!")
 	var t = OS.get_ticks_msec()
-	var total_voxels = 0
-	for pos in world:
-		if world[pos] > 0:
-			total_voxels += 1
-	print("Total voxels before culling = "+str(total_voxels))
-	#print("Culled voxels = "+str(cull_voxels()))
 	surface.clear()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	surface.set_material(mat)
@@ -64,7 +60,6 @@ func create_chunk(size):
 		if world[pos] > 0:
 			var faces_to_cull = find_adjacent_faces(pos)
 			cube_at(pos, 2, faces_to_cull)
-	var chunk = MeshInstance.new()
 	surface.index()
 	chunk.mesh = surface.commit()
 	print("Chunk mesh generated in "+str(OS.get_ticks_msec() - t)+" ms")
@@ -73,6 +68,7 @@ func create_chunk(size):
 	#chunk.create_convex_collision()
 	print("Chunk collider generated in "+str(OS.get_ticks_msec() - t)+" ms")
 	add_child(chunk)
+	generated = true
 	return chunk
 	
 
