@@ -125,7 +125,7 @@ environment = SubResource( 2 )
 
 [node name="Player" parent="." index="3" instance=ExtResource( 4 )]
 
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 30, 10 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 0 )
 
 [node name="playerPosDebug" type="MeshInstance" parent="." index="4"]
 

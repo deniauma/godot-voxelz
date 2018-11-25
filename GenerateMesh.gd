@@ -6,24 +6,37 @@ var texture = load("res://assets/spritesheet_tiles.png")
 var surface = SurfaceTool.new()
 var mat = SpatialMaterial.new()
 var chunk = MeshInstance.new()
+var static_body = StaticBody.new()
+var col_shape = CollisionShape.new()
+var shape = ConcavePolygonShape.new()
 var voxel_dirt_and_grass #type = 1
 var voxel_dirt #type = 2
 var world = {}
+var highest
 var thread = Thread.new()
 var generated = false
 
 func _ready():
 	mat.albedo_texture = texture
+	mat.albedo_color = Color(255,0,0)
 	#mat.set_flag(SpatialMaterial.FLAG_UNSHADED, true)
+	add_child(chunk)
+	chunk.add_child(static_body)
+	static_body.add_child(col_shape)
+	col_shape.set_shape(shape)
+
 	var t = OS.get_ticks_msec()
 	#generate_heightmap(5)
-	generate_height_with_simplex(16)
+	highest = generate_height_with_simplex(16)
 	#create_chunk()
 	print(str(OS.get_ticks_msec() - t)+" ms")
 	if thread.is_active():
 		# Already working
 		return
-	thread.start(self, "create_chunk")
+	#thread.start(self, "create_chunk")
+	thread.start(self, "greedy_mesher", 16)
+	#var vol_test = Quad3D.new(Vector3(0,0,0), 2,1,1)
+	#test_volume(vol_test)
 	
 
 func generate_heightmap(max_height):
@@ -42,13 +55,17 @@ func generate_heightmap(max_height):
 				world[Vector3(x,y,z)] = 1
 
 func generate_height_with_simplex(size):
+	var highest = 0
 	for x in range(size):
 		for z in range(size):
 			var xforsim = x * 0.05+40
 			var yforsim = z * 0.05+2000
 			var h = 1 + (((simplex.simplex2(xforsim,yforsim)+1)*0.5) * 16)
+			if h > highest:
+				highest = h
 			for y in range(h):
 				world[Vector3(x,y,z)] = 1
+	return highest
 
 func create_chunk(size):
 	print("Chunk build started!")
@@ -64,13 +81,72 @@ func create_chunk(size):
 	chunk.mesh = surface.commit()
 	print("Chunk mesh generated in "+str(OS.get_ticks_msec() - t)+" ms")
 	t = OS.get_ticks_msec()
-	chunk.create_trimesh_collision()
+	#chunk.create_trimesh_collision()
 	#chunk.create_convex_collision()
+	shape.set_faces(chunk.mesh.get_faces())
 	print("Chunk collider generated in "+str(OS.get_ticks_msec() - t)+" ms")
-	add_child(chunk)
 	generated = true
 	return chunk
 	
+func greedy_mesher(size):
+	print("Greedy mesh start!")
+	var t = OS.get_ticks_msec()
+	surface.clear()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	surface.set_material(mat)
+	var polys = []
+	for y in range(highest+1):
+		#compute the plane mask along the Y axis
+		var mask = Array2D.new(size,size)
+		for x in range(size):
+			for z in range(size):
+				var pos = Vector3(x,y,z)
+				if world.has(pos):
+					mask.set(x,z,world[pos])
+				else:
+					mask.set(x,z,0)
+		#search quads in the mask
+		var volume
+		for x in range(size):
+			var start = false
+			for z in range(size):
+				if mask.at(x,z) == 1:
+					if not start:
+						start = true
+						volume = Quad3D.new(Vector3(x,y,z),1,1,1)
+					else:
+						volume.depth += 1
+					#if z < (size-1):
+					#	if mask.at(x,z+1) != 1
+					if z == (size - 1):
+						var x_max = find_x_max(volume, mask)
+						volume.width += x_max - volume.pos.x
+						polys.append(volume)
+				else:
+					if start:
+						start = false
+						var x_max = find_x_max(volume, mask)
+						volume.width += x_max - volume.pos.x
+						polys.append(volume)
+	for vol in polys:
+		create_volume_vertex(vol)
+	surface.index()
+	chunk.mesh = surface.commit()
+	print("Chunk mesh (greedy) generated in "+str(OS.get_ticks_msec() - t)+" ms")
+	print(str(polys.size()))
+	t = OS.get_ticks_msec()
+	shape.set_faces(chunk.mesh.get_faces())
+	print("Chunk collider generated in "+str(OS.get_ticks_msec() - t)+" ms")
+	generated = true
+
+func find_x_max(volume, mask):
+	for x in range(volume.pos.x+1, mask.width):
+		for z in range(volume.pos.z, volume.pos.z + volume.depth):
+			if mask.at(x,z) == 1:
+				mask.set(x,z,0)
+			else:
+				return x
+	return mask.width-1
 
 func cull_voxels():
 	var nb_culled = 0
@@ -103,6 +179,78 @@ func find_adjacent_faces(pos):
 		if world.has(adjacent_cube):
 			adjacent_faces.append(normal)
 	return adjacent_faces
+
+func test_volume(vol):
+	print(vol.to_str())
+	surface.clear()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	surface.set_material(mat)
+	create_volume_vertex(vol)
+	#surface.index()
+	chunk.mesh = surface.commit()
+	#shape.set_faces(chunk.mesh.get_faces())
+			
+func create_volume_vertex(volume):
+	var verts = []
+	var dirs = [Vector3(1,0,0),Vector3(0,1,0),Vector3(0,0,1), Vector3(-1,0,0),Vector3(0,-1,0),Vector3(0,0,-1)]
+	var x1 = volume.pos.x
+	var x2 = x1 + volume.width
+	var y1 = volume.pos.y
+	var y2 = y1 + volume.height
+	var z1 = volume.pos.z
+	var z2 = z1 + volume.depth
+	for n in dirs:
+		if n.z == -1:
+			verts = [Vector3(x1, y1, z1),
+					Vector3(x2, y1, z1),
+					Vector3(x2, y2, z1),
+					Vector3(x2, y2, z1),
+					Vector3(x1, y2, z1),
+					Vector3(x1, y1, z1)]
+					
+		elif n.z == 1:
+			verts = [Vector3(x1, y1, z2),
+					Vector3(x1, y2, z2),
+					Vector3(x2, y2, z2),
+					Vector3(x2, y2, z2),
+					Vector3(x2, y1, z2),
+					Vector3(x1, y1, z2)]
+					
+		elif n.x == -1:
+			verts = [Vector3(x1, y1, z1),
+					Vector3(x1, y2, z1),
+					Vector3(x1, y2, z2),
+					Vector3(x1, y2, z2),
+					Vector3(x1, y1, z2),
+					Vector3(x1, y1, z1)]
+					
+		elif n.x == 1:
+			verts = [Vector3(x2, y1, z1),
+					Vector3(x2, y1, z2),
+					Vector3(x2, y2, z2),
+					Vector3(x2, y2, z2),
+					Vector3(x2, y2, z1),
+					Vector3(x2, y1, z1)]
+					
+		elif n.y == -1:
+			verts = [Vector3(x1, y1, z1),
+					Vector3(x2, y1, z1),
+					Vector3(x2, y1, z2),
+					Vector3(x2, y1, z2),
+					Vector3(x1, y1, z2),
+					Vector3(x1, y1, z1)]
+					
+		elif n.y == 1:
+			verts = [Vector3(x1, y2, z1),
+					Vector3(x2, y2, z1),
+					Vector3(x2, y2, z2),
+					Vector3(x2, y2, z2),
+					Vector3(x1, y2, z2),
+					Vector3(x1, y2, z1)]
+					
+		for v in range(6):
+			surface.add_normal(n)
+			surface.add_vertex(verts[v])
 
 func cube_at(pos, type, faces_to_cull):
 	var dirs = [Vector3(1,0,0),Vector3(0,1,0),Vector3(0,0,1)]	
@@ -145,14 +293,14 @@ func face_at(pos, normal, type):
 	var uv_offset = uvInfo[1]#Vector2(0,0)
 	var order_v  = [ 2   , 0   , 1   ,1    , 3   , 2   ]
 	var order_uv = uvInfo[0]#[[1,0],[1,1],[0,1],[0,1],[0,0],[1,0]]
-	surface.set_material(mat)
+	#surface.set_material(mat)
 	for v in range(6):
 		var uv_vec = Vector2(order_uv[v][0],order_uv[v][1])
 		uv_vec.x *= u_size
 		uv_vec.y *= v_size
 		#uv_offset.x *= u_size
 		#uv_offset.y *= v_size
-		surface.add_uv(Vector2(uv_offset.x * u_size, uv_offset.y * v_size) + uv_vec) #surface.add_uv((uv_offset * uv_size) + (uv_size * Vector2(order_uv[v][0],order_uv[v][1])))
+		#surface.add_uv(Vector2(uv_offset.x * u_size, uv_offset.y * v_size) + uv_vec) #surface.add_uv((uv_offset * uv_size) + (uv_size * Vector2(order_uv[v][0],order_uv[v][1])))
 		surface.add_normal(normal)
 		surface.add_vertex(verts[order_v[v]] + pos)
 		
@@ -230,6 +378,21 @@ func gen_diamond_square_heightmap(n, min_height, max_height):
 				var h = sum / (m + rand_range(-half_step, half_step))
 				heightmap.set(x, y, h)
 	return heightmap
+	
+class Quad3D:
+	var pos
+	var width
+	var height
+	var depth
+	
+	func _init(p, w, h, d):
+		pos = p
+		width = w
+		height = h
+		depth = d
+		
+	func to_str():
+		return "Pos: "+str(pos)+", w: "+str(width)+", h: "+str(height)+", d: "+str(depth)
 	
 	
 class Array2D:
