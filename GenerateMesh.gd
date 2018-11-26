@@ -27,16 +27,18 @@ func _ready():
 
 	var t = OS.get_ticks_msec()
 	#generate_heightmap(5)
-	highest = generate_height_with_simplex(16)
+	highest = generate_height_with_simplex(32)
 	#create_chunk()
 	print(str(OS.get_ticks_msec() - t)+" ms")
 	if thread.is_active():
 		# Already working
 		return
 	#thread.start(self, "create_chunk")
-	thread.start(self, "greedy_mesher", 16)
+	#thread.start(self, "greedy_mesher", 8)
+	#create_chunk(16)
+	greedy_mesher(32)
 	#var vol_test = Quad3D.new(Vector3(0,0,0), 2,1,1)
-	#test_volume(vol_test)
+	#thread.start(self, "test_volume", vol_test)
 	
 
 func generate_heightmap(max_height):
@@ -128,11 +130,15 @@ func greedy_mesher(size):
 						var x_max = find_x_max(volume, mask)
 						volume.width += x_max - volume.pos.x
 						polys.append(volume)
+	print("Checkpoint: "+str(OS.get_ticks_msec() - t)+" ms")
 	for vol in polys:
 		create_volume_vertex(vol)
+	print("Checkpoint 2: "+str(OS.get_ticks_msec() - t)+" ms")
 	surface.index()
-	chunk.mesh = surface.commit()
-	print("Chunk mesh (greedy) generated in "+str(OS.get_ticks_msec() - t)+" ms")
+	print("Checkpoint 3: "+str(OS.get_ticks_msec() - t)+" ms")
+	chunk.set_mesh(surface.commit())
+	print("Checkpoint 4: "+str(OS.get_ticks_msec() - t)+" ms")
+	print("Chunk generated in "+str(OS.get_ticks_msec() - t)+" ms")
 	print(str(polys.size()))
 	t = OS.get_ticks_msec()
 	shape.set_faces(chunk.mesh.get_faces())
@@ -181,13 +187,16 @@ func find_adjacent_faces(pos):
 	return adjacent_faces
 
 func test_volume(vol):
+	print("Greedy mesh start!")
+	var t = OS.get_ticks_msec()
 	print(vol.to_str())
 	surface.clear()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	surface.set_material(mat)
 	create_volume_vertex(vol)
-	#surface.index()
+	surface.index()
 	chunk.mesh = surface.commit()
+	print("Checkpoint: "+str(OS.get_ticks_msec() - t)+" ms")
 	#shape.set_faces(chunk.mesh.get_faces())
 			
 func create_volume_vertex(volume):
