@@ -225,6 +225,8 @@ func create_volume_vertex(volume):
 			uv_scale = Vector2(volume.width, volume.height)
 					
 		elif n.z == 1:
+			#[[1,0],[1,1],[0,1],[0,1],[0,0],[1,0]] #works for (0,0,1)
+			#[[0,0],[0,1],[1,1],[1,1],[1,0],[0,0]] #test
 			verts = [Vector3(x1, y1, z2),
 					Vector3(x1, y2, z2),
 					Vector3(x2, y2, z2),
@@ -341,22 +343,23 @@ func calcUV(type,normal):
 		uvoffset = Vector2(0,0)
 	if type == 2:
 		if normal == Vector3(1,0,0):
-			uv_orderList = [[0,0],[1,0],[1,1],[1,1],[0,1],[0,0]] #works for (1,0,0)
+			uv_orderList = [[1,1],[0,1],[0,0],[0,0],[1,0],[1,1]] #[[0,0],[1,0],[1,1],[1,1],[0,1],[0,0]] #works for (1,0,0)
 			uvoffset = Vector2(5,0)
 		elif normal == Vector3(-1,0,0):
 			uv_orderList = [[0,1],[0,0],[1,0],[1,0],[1,1],[0,1]] #works for (-1,0,0)
 			uvoffset = Vector2(5,0)
 		elif normal == Vector3(0,1,0):
-			uv_orderList = [[0,1],[0,0],[1,0],[1,0],[1,1],[0,1]]
+			uv_orderList = [[0,0],[1,0],[1,1],[1,1],[0,1],[0,0]] #[[0,1],[0,0],[1,0],[1,0],[1,1],[0,1]]
 			uvoffset = Vector2(4,6)
 		elif normal == Vector3(0,-1,0):
 			
 			uvoffset = Vector2(5,1)
 		elif normal == Vector3(0,0,1):
-			
+			uv_orderList = [[0,1],[0,0],[1,0],[1,0],[1,1],[0,1]] #[[0,0],[0,1],[1,1],[1,1],[1,0],[0,0]] 
 			uvoffset = Vector2(5,0)
 		elif normal == Vector3(0,0,-1):
 			uv_orderList = [[1,1],[0,1],[0,0],[0,0],[1,0],[1,1]]
+			#uv_orderList = [[0,0],[1,0],[1,1],[1,1],[0,1],[0,0]]
 			uvoffset = Vector2(5,0)
 	return [uv_orderList,uvoffset]
 
