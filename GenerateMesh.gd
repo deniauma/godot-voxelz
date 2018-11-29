@@ -3,8 +3,10 @@ extends Spatial
 var angle = 0
 var simplex = load("res://simplex/Simplex.gd")
 var texture = load("res://assets/spritesheet_tiles.png")
+var shader = load("res://shaders/greedy_mesh.shader")
 var surface = SurfaceTool.new()
 var mat = SpatialMaterial.new()
+var greedy_mat = ShaderMaterial.new()
 var chunk = MeshInstance.new()
 var static_body = StaticBody.new()
 var col_shape = CollisionShape.new()
@@ -18,7 +20,9 @@ var generated = false
 
 func _ready():
 	mat.albedo_texture = texture
-	mat.albedo_color = Color(255,0,0)
+	greedy_mat.shader = shader
+	greedy_mat.set_shader_param("texture_albedo", texture)
+	#mat.albedo_color = Color(255,0,0)
 	#mat.set_flag(SpatialMaterial.FLAG_UNSHADED, true)
 	add_child(chunk)
 	chunk.add_child(static_body)
@@ -74,7 +78,8 @@ func create_chunk(size):
 	var t = OS.get_ticks_msec()
 	surface.clear()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	surface.set_material(mat)
+	#surface.set_material(mat)
+	surface.set_material(greedy_mat)
 	for pos in world.keys():
 		if world[pos] > 0:
 			var faces_to_cull = find_adjacent_faces(pos)
@@ -95,7 +100,7 @@ func greedy_mesher(size):
 	var t = OS.get_ticks_msec()
 	surface.clear()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	surface.set_material(mat)
+	surface.set_material(greedy_mat)
 	var polys = []
 	for y in range(highest+1):
 		#compute the plane mask along the Y axis
@@ -208,6 +213,7 @@ func create_volume_vertex(volume):
 	var y2 = y1 + volume.height
 	var z1 = volume.pos.z
 	var z2 = z1 + volume.depth
+	var uv_scale
 	for n in dirs:
 		if n.z == -1:
 			verts = [Vector3(x1, y1, z1),
@@ -216,6 +222,7 @@ func create_volume_vertex(volume):
 					Vector3(x2, y2, z1),
 					Vector3(x1, y2, z1),
 					Vector3(x1, y1, z1)]
+			uv_scale = Vector2(volume.width, volume.height)
 					
 		elif n.z == 1:
 			verts = [Vector3(x1, y1, z2),
@@ -224,6 +231,7 @@ func create_volume_vertex(volume):
 					Vector3(x2, y2, z2),
 					Vector3(x2, y1, z2),
 					Vector3(x1, y1, z2)]
+			uv_scale = Vector2(volume.width, volume.height)
 					
 		elif n.x == -1:
 			verts = [Vector3(x1, y1, z1),
@@ -232,6 +240,7 @@ func create_volume_vertex(volume):
 					Vector3(x1, y2, z2),
 					Vector3(x1, y1, z2),
 					Vector3(x1, y1, z1)]
+			uv_scale = Vector2(volume.depth, volume.height)
 					
 		elif n.x == 1:
 			verts = [Vector3(x2, y1, z1),
@@ -240,6 +249,7 @@ func create_volume_vertex(volume):
 					Vector3(x2, y2, z2),
 					Vector3(x2, y2, z1),
 					Vector3(x2, y1, z1)]
+			uv_scale = Vector2(volume.depth, volume.height)
 					
 		elif n.y == -1:
 			verts = [Vector3(x1, y1, z1),
@@ -248,6 +258,7 @@ func create_volume_vertex(volume):
 					Vector3(x2, y1, z2),
 					Vector3(x1, y1, z2),
 					Vector3(x1, y1, z1)]
+			uv_scale = Vector2(volume.width, volume.depth)
 					
 		elif n.y == 1:
 			verts = [Vector3(x1, y2, z1),
@@ -256,8 +267,15 @@ func create_volume_vertex(volume):
 					Vector3(x2, y2, z2),
 					Vector3(x1, y2, z2),
 					Vector3(x1, y2, z1)]
+			uv_scale = Vector2(volume.width, volume.depth)
 					
+		var uvInfo = calcUV(2, n)
+		var uv_offset = uvInfo[1]
+		var order_uv = uvInfo[0]
 		for v in range(6):
+			var uv_vec = Vector2(order_uv[v][0] * uv_scale[0], order_uv[v][1] * uv_scale[1])
+			surface.add_uv(uv_vec)
+			surface.add_uv2(uv_offset)
 			surface.add_normal(n)
 			surface.add_vertex(verts[v])
 
@@ -305,11 +323,13 @@ func face_at(pos, normal, type):
 	#surface.set_material(mat)
 	for v in range(6):
 		var uv_vec = Vector2(order_uv[v][0],order_uv[v][1])
-		uv_vec.x *= u_size
-		uv_vec.y *= v_size
+		#uv_vec.x *= u_size
+		#uv_vec.y *= v_size
 		#uv_offset.x *= u_size
 		#uv_offset.y *= v_size
 		#surface.add_uv(Vector2(uv_offset.x * u_size, uv_offset.y * v_size) + uv_vec) #surface.add_uv((uv_offset * uv_size) + (uv_size * Vector2(order_uv[v][0],order_uv[v][1])))
+		surface.add_uv(uv_vec)
+		surface.add_uv2(uv_offset)
 		surface.add_normal(normal)
 		surface.add_vertex(verts[order_v[v]] + pos)
 		
@@ -327,7 +347,7 @@ func calcUV(type,normal):
 			uv_orderList = [[0,1],[0,0],[1,0],[1,0],[1,1],[0,1]] #works for (-1,0,0)
 			uvoffset = Vector2(5,0)
 		elif normal == Vector3(0,1,0):
-			
+			uv_orderList = [[0,1],[0,0],[1,0],[1,0],[1,1],[0,1]]
 			uvoffset = Vector2(4,6)
 		elif normal == Vector3(0,-1,0):
 			
