@@ -24,23 +24,26 @@ func _ready():
 	greedy_mat.set_shader_param("texture_albedo", texture)
 	#mat.albedo_color = Color(255,0,0)
 	#mat.set_flag(SpatialMaterial.FLAG_UNSHADED, true)
-	add_child(chunk)
+	"""add_child(chunk)
 	chunk.add_child(static_body)
 	static_body.add_child(col_shape)
-	col_shape.set_shape(shape)
+	col_shape.set_shape(shape)"""
 
 	var t = OS.get_ticks_msec()
 	#generate_heightmap(5)
 	highest = generate_height_with_simplex(32)
 	#create_chunk()
 	print(str(OS.get_ticks_msec() - t)+" ms")
+	print("Before thread")
 	if thread.is_active():
 		# Already working
 		return
 	#thread.start(self, "create_chunk")
-	#thread.start(self, "greedy_mesher", 8)
+	
+	thread.start(self, "greedy_mesher", 32)
+	print("After thread")
 	#create_chunk(16)
-	greedy_mesher(32)
+	#greedy_mesher(32)
 	#var vol_test = Quad3D.new(Vector3(0,0,0), 2,1,1)
 	#thread.start(self, "test_volume", vol_test)
 	
@@ -95,6 +98,23 @@ func create_chunk(size):
 	generated = true
 	return chunk
 	
+func on_mesh_generated():
+	var t = OS.get_ticks_msec()
+	print("on_mesh_generated start")
+	var new_chunk = MeshInstance.new()
+	new_chunk.set_mesh(surface.commit())
+	print("Checkpoint 4: "+str(OS.get_ticks_msec() - t)+" ms /")
+	
+	print("Chunk generated in "+str(OS.get_ticks_msec() - t)+" ms")
+	t = OS.get_ticks_msec()
+	#shape.set_faces(chunk.mesh.get_faces())
+	new_chunk.create_trimesh_collision()
+	print("Chunk collider generated in "+str(OS.get_ticks_msec() - t)+" ms")
+	
+	add_child(new_chunk)
+	print("Chunk added to tree"+str(OS.get_ticks_msec() - t)+" ms")
+	generated = true
+
 func greedy_mesher(size):
 	print("Greedy mesh start!")
 	var t = OS.get_ticks_msec()
@@ -136,19 +156,26 @@ func greedy_mesher(size):
 						volume.width += x_max - volume.pos.x
 						polys.append(volume)
 	print("Checkpoint: "+str(OS.get_ticks_msec() - t)+" ms")
+	print(str(polys.size()))
 	for vol in polys:
 		create_volume_vertex(vol)
 	print("Checkpoint 2: "+str(OS.get_ticks_msec() - t)+" ms")
 	surface.index()
 	print("Checkpoint 3: "+str(OS.get_ticks_msec() - t)+" ms")
-	chunk.set_mesh(surface.commit())
-	print("Checkpoint 4: "+str(OS.get_ticks_msec() - t)+" ms")
+	call_deferred("on_mesh_generated")
+	"""var new_chunk = MeshInstance.new()
+	new_chunk.set_mesh(surface.commit())
+	print("Checkpoint 4: "+str(OS.get_ticks_msec() - t)+" ms /")
+	
 	print("Chunk generated in "+str(OS.get_ticks_msec() - t)+" ms")
-	print(str(polys.size()))
 	t = OS.get_ticks_msec()
-	shape.set_faces(chunk.mesh.get_faces())
+	#shape.set_faces(chunk.mesh.get_faces())
+	new_chunk.create_trimesh_collision()
 	print("Chunk collider generated in "+str(OS.get_ticks_msec() - t)+" ms")
-	generated = true
+	
+	#call_deferred("add_child", new_chunk)
+	return new_chunk"""
+	
 
 func find_x_max(volume, mask):
 	for x in range(volume.pos.x+1, mask.width):
