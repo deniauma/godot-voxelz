@@ -277,7 +277,7 @@ _sections_unfolded = [ "Geometry", "Transform", "material" ]
 
 transform = Transform( 0.984995, 0.103901, 0.137802, 0, -0.798468, 0.602038, 0.172583, -0.593004, -0.786487, -3.9443, 5.89479, -5.35351 )
 layers = 1
-light_color = Color( 1, 1, 1, 1 )
+light_color = Color( 0.820313, 0.679321, 0.679321, 1 )
 light_energy = 1.0
 light_indirect_energy = 1.0
 light_negative = false
