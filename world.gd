@@ -14,12 +14,13 @@ func _ready():
 	map = r[0]
 	highest = r[1]
 	chunk_lib = Utils.new_array2D(MAP_SIZE / CHUNK_SIZE, MAP_SIZE / CHUNK_SIZE)
-	for x in range(2):
-		for y in range(2):
+	for x in range(4):
+		for y in range(4):
 			chunk_lib.set(x, y, create_chunk(Vector2(x,y)))
-	
+	player.transform.origin = Vector3(2*CHUNK_SIZE, 20, 2*CHUNK_SIZE)
 	
 func create_chunk(pos):
+	var t = OS.get_ticks_msec()
 	var chunk_map = {}
 	var max_h = 1
 	for x in range(pos.x * CHUNK_SIZE, pos.x * CHUNK_SIZE + CHUNK_SIZE):
@@ -27,13 +28,14 @@ func create_chunk(pos):
 			for y in range(map.at(x, z)):
 				if y > max_h:
 					max_h = y
-				chunk_map[Vector3(x,y,z)] = 1
+				chunk_map[Vector3(x - pos.x * CHUNK_SIZE, y, z - pos.y * CHUNK_SIZE)] = 1
 	var chunk = chunk_class.new()
 	chunk.translate(Vector3(pos.x * CHUNK_SIZE, 0, pos.y * CHUNK_SIZE))
 	add_child(chunk)
 	chunk.create(chunk_map, max_h)
 	print("Chunk final pos: "+str(chunk.translation))
 	#player.transform.origin.y = 200
+	print("Chunk added in "+str(OS.get_ticks_msec() - t)+" ms")
 	return chunk
 
 	
