@@ -33,13 +33,18 @@ func create_chunk(pos):
 	chunk.translate(Vector3(pos.x * CHUNK_SIZE, 0, pos.y * CHUNK_SIZE))
 	add_child(chunk)
 	chunk.create(chunk_map, max_h)
-	print("Chunk final pos: "+str(chunk.translation))
 	#player.transform.origin.y = 200
 	print("Chunk added in "+str(OS.get_ticks_msec() - t)+" ms")
 	return chunk
 
+func find_current_chunk(pos):
+	var x_pos = int(pos.x / CHUNK_SIZE)
+	var z_pos = int(pos.z / CHUNK_SIZE)
+	get_tree().call_group("hud", "update_current_chunk_coords", Vector2(x_pos, z_pos))
+	
 	
 func _physics_process(delta):
 	var pos = player.transform.origin
-	pos = Vector3(int(pos.x), int(pos.y)-1.5, int(pos.z))
+	get_tree().call_group("hud", "update_player_pos", pos)
+	find_current_chunk(pos)
 			
