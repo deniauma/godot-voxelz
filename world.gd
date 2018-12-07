@@ -8,14 +8,19 @@ onready var player = $Player
 var map
 var highest
 var chunk_lib
+var thread = Thread.new()
+var curr_chuck
+var prev_chunk
+var nb_chunks = 0
+var chunks_queue = []
 
 func _ready():
 	var r = Utils.generate_heightmap(MAP_SIZE)
 	map = r[0]
 	highest = r[1]
 	chunk_lib = Utils.new_array2D(MAP_SIZE / CHUNK_SIZE, MAP_SIZE / CHUNK_SIZE)
-	for x in range(4):
-		for y in range(4):
+	for x in range(5):
+		for y in range(5):
 			chunk_lib.set(x, y, create_chunk(Vector2(x,y)))
 	player.transform.origin = Vector3(2*CHUNK_SIZE, 20, 2*CHUNK_SIZE)
 	
@@ -35,16 +40,46 @@ func create_chunk(pos):
 	chunk.create(chunk_map, max_h)
 	#player.transform.origin.y = 200
 	print("Chunk added in "+str(OS.get_ticks_msec() - t)+" ms")
+	nb_chunks += 1
 	return chunk
 
 func find_current_chunk(pos):
 	var x_pos = int(pos.x / CHUNK_SIZE)
 	var z_pos = int(pos.z / CHUNK_SIZE)
-	get_tree().call_group("hud", "update_current_chunk_coords", Vector2(x_pos, z_pos))
+	curr_chuck = Vector2(x_pos, z_pos)
+	if prev_chunk == null:
+		prev_chunk = curr_chuck
+	get_tree().call_group("hud", "update_current_chunk_coords", curr_chuck)
+	if curr_chuck != prev_chunk:
+		load_chunks()
+	prev_chunk = curr_chuck
+		
+func load_chunks():
+	var diff = curr_chuck - prev_chunk
+	var x_dir
+	var y_dir
+	if(diff.x != 0):
+		x_dir = curr_chuck.x + (diff.x / abs(diff.x)) * 2
+		#create_chunk(Vector2(x_dir, curr_chuck.y))
+	if(diff.y != 0):
+		y_dir = curr_chuck.y + (diff.y / abs(diff.y)) * 2
+		#create_chunk(Vector2(curr_chuck.x, y_dir))
 	
+	for i in range(-1,2,1):
+		if(diff.x != 0):
+			#create_chunk(Vector2(x_dir, curr_chuck.y + i))
+			chunks_queue.append(Vector2(x_dir, curr_chuck.y + i))
+		if(diff.y != 0):
+			#create_chunk(Vector2(curr_chuck.x, y_dir + i))
+			chunks_queue.append(Vector2(curr_chuck.x, y_dir + i))
 	
 func _physics_process(delta):
 	var pos = player.transform.origin
 	get_tree().call_group("hud", "update_player_pos", pos)
+	get_tree().call_group("hud", "update_nb_chunks", nb_chunks, chunks_queue.size())
 	find_current_chunk(pos)
 			
+func _process(delta):
+	print(str(thread.is_active()))
+	if(chunks_queue.size() > 0 and not thread.is_active()):
+		thread.start(self, "create_chunk", chunks_queue.pop_front())

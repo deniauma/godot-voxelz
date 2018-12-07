@@ -17,3 +17,6 @@ func update_player_pos(pos):
 	
 func update_current_chunk_coords(coords):
 	$GameMonitor/CurrentChunkLine/currentChunk.set_text(str(coords))
+	
+func update_nb_chunks(n,q):
+	$GameMonitor/NbChunksLine/NbChunks.set_text(str(n)+" ("+str(q)+")")
