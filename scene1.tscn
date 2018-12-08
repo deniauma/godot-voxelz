@@ -157,6 +157,6 @@ directional_shadow_normal_bias = 0.8
 directional_shadow_bias_split_scale = 0.25
 directional_shadow_depth_range = 0
 directional_shadow_max_distance = 200.0
-_sections_unfolded = [ "Transform" ]
+_sections_unfolded = [ "Shadow", "Transform" ]
 
 
